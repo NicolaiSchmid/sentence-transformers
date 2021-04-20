@@ -42,6 +42,7 @@ information-retrieval/  - Given a large corpus of questions, find the duplicates
     dev/test-queries.tsv - Queries and the respective duplicate questions (QIDs) in the corpus
 
 """
+
 import csv
 from collections import defaultdict
 import random
@@ -179,7 +180,7 @@ for row in rows:
         target_set = train_ids
         if counter%10 == 0:
             target_set = dev_ids
-        elif counter%10 == 1 or counter%10 == 2:
+        elif counter % 10 in [1, 2]:
             target_set = test_ids
         counter += 1
 
@@ -259,9 +260,7 @@ with open('quora-IR-dataset/graph/duplicates-graph-connected-nodes.tsv', 'w', en
     fOut.write("qids\n")
     for a in sorted(duplicates.keys(), key=lambda x: int(x)):
         if a not in written_qids:
-            ids = set()
-            ids.add(a)
-
+            ids = {a}
             for b in duplicates[a]:
                 ids.add(b)
 
@@ -316,7 +315,18 @@ with open('quora-IR-dataset/classification/train_pairs.tsv', 'w', encoding='utf8
             target = fOutTest
 
         if target is not None:
-            target.write("\t".join([row['qid1'], row['qid2'], sentences[id1], sentences[id2], row['is_duplicate']]))
+            target.write(
+                "\t".join(
+                    [
+                        id1,
+                        id2,
+                        sentences[id1],
+                        sentences[id2],
+                        row['is_duplicate'],
+                    ]
+                )
+            )
+
             target.write("\n")
 
 

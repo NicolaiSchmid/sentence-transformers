@@ -48,5 +48,4 @@ class OnlineContrastiveLoss(nn.Module):
 
         positive_loss = positive_pairs.pow(2).sum()
         negative_loss = F.relu(self.margin - negative_pairs).pow(2).sum()
-        loss = positive_loss + negative_loss
-        return loss
+        return positive_loss + negative_loss

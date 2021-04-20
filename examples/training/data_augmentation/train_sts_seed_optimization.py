@@ -22,6 +22,7 @@ python train_sts_seed_optimization.py pretrained_transformer_model_name seed_cou
 
 python ttrain_sts_seed_optimization.py bert-base-uncased 10 0.3
 """
+
 from torch.utils.data import DataLoader
 import math
 import torch
@@ -61,6 +62,9 @@ stop_after = float(sys.argv[3]) if len(sys.argv) > 3 else 0.3
 
 logging.info("Train and Evaluate: {} Random Seeds".format(seed_count))
 
+# Read the dataset
+train_batch_size = 16
+num_epochs = 1
 for seed in range(seed_count):
 
     # Setting seed for all random initializations
@@ -68,10 +72,7 @@ for seed in range(seed_count):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
-    # Read the dataset
-    train_batch_size = 16
-    num_epochs = 1
+
     model_save_path = 'output/bi-encoder/training_stsbenchmark_'+ model_name + '/seed-'+ str(seed)
 
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -115,11 +116,11 @@ for seed in range(seed_count):
 
     # Configure the training. We skip evaluation in this example
     warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
-    
+
     # Stopping and Evaluating after 30% of training data (less than 1 epoch)
     # We find from (Dodge et al.) that 20-30% is often ideal for convergence of random seed
     steps_per_epoch = math.ceil( len(train_dataset) / train_batch_size * stop_after ) 
-    
+
     logging.info("Warmup-steps: {}".format(warmup_steps))
 
     logging.info("Early-stopping: {}% of the training-data".format(int(stop_after*100)))

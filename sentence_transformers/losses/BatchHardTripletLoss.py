@@ -136,9 +136,7 @@ class BatchHardTripletLoss(nn.Module):
         # Combine biggest d(a, p) and smallest d(a, n) into final triplet loss
         tl = hardest_positive_dist - hardest_negative_dist + self.triplet_margin
         tl[tl < 0] = 0
-        triplet_loss = tl.mean()
-
-        return triplet_loss
+        return tl.mean()
 
 
 

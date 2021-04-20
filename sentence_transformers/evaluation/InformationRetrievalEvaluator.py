@@ -88,11 +88,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, corpus_model = None, corpus_embeddings: Tensor = None) -> float:
-        if epoch != -1:
-            out_txt = " after epoch {}:".format(epoch) if steps == -1 else " in epoch {} after {} steps:".format(epoch, steps)
-        else:
+        if epoch == -1:
             out_txt = ":"
 
+        else:
+            out_txt = " after epoch {}:".format(epoch) if steps == -1 else " in epoch {} after {} steps:".format(epoch, steps)
         if corpus_model is None:
             corpus_model = model
 
@@ -103,9 +103,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         # Compute embedding for the queries
         query_embeddings = model.encode(self.queries, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
 
-        queries_result_list = {}
-        for name in self.score_functions:
-            queries_result_list[name] = [[] for _ in range(len(query_embeddings))]
+        queries_result_list = {
+            name: [[] for _ in range(len(query_embeddings))]
+            for name in self.score_functions
+        }
 
         itr = range(0, len(self.corpus), self.corpus_chunk_size)
 
@@ -151,13 +152,13 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         #Write results to disc
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
-            if not os.path.isfile(csv_path):
+            if os.path.isfile(csv_path):
+                fOut = open(csv_path, mode="a", encoding="utf-8")
+
+            else:
                 fOut = open(csv_path, mode="w", encoding="utf-8")
                 fOut.write(",".join(self.csv_headers))
                 fOut.write("\n")
-
-            else:
-                fOut = open(csv_path, mode="a", encoding="utf-8")
 
             output_data = [epoch, steps]
             for name in self.score_function_names:
@@ -182,7 +183,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             fOut.close()
 
         if self.main_score_function is None:
-            return max([scores[name]['map@k'][max(self.map_at_k)] for name in self.score_function_names])
+            return max(
+                scores[name]['map@k'][max(self.map_at_k)]
+                for name in self.score_function_names
+            )
+
         else:
             return scores[self.main_score_function]['map@k'][max(self.map_at_k)]
 
@@ -214,10 +219,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             # Precision and Recall@k
             for k_val in self.precision_recall_at_k:
-                num_correct = 0
-                for hit in top_hits[0:k_val]:
-                    if hit['corpus_id'] in query_relevant_docs:
-                        num_correct += 1
+                num_correct = sum(
+                    hit['corpus_id'] in query_relevant_docs
+                    for hit in top_hits[0:k_val]
+                )
 
                 precisions_at_k[k_val].append(num_correct / k_val)
                 recall_at_k[k_val].append(num_correct / len(query_relevant_docs))
@@ -251,8 +256,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 AveP_at_k[k_val].append(avg_precision)
 
         # Compute averages
-        for k in num_hits_at_k:
-            num_hits_at_k[k] /= len(self.queries)
+        for k, v_ in num_hits_at_k.items():
+            v_ /= len(self.queries)
 
         for k in precisions_at_k:
             precisions_at_k[k] = np.mean(precisions_at_k[k])
@@ -263,8 +268,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for k in ndcg:
             ndcg[k] = np.mean(ndcg[k])
 
-        for k in MRR:
-            MRR[k] /= len(self.queries)
+        for k, v in MRR.items():
+            v /= len(self.queries)
 
         for k in AveP_at_k:
             AveP_at_k[k] = np.mean(AveP_at_k[k])

@@ -64,7 +64,11 @@ class ParallelSentencesDataset(Dataset):
             count = 0
             for line in fIn:
                 sentences = line.strip().split("\t")
-                if max_sentence_length is not None and max_sentence_length > 0 and max([len(sent) for sent in sentences]) > max_sentence_length:
+                if (
+                    max_sentence_length is not None
+                    and max_sentence_length > 0
+                    and max(len(sent) for sent in sentences) > max_sentence_length
+                ):
                     continue
 
                 parallel_sentences.append(sentences)
@@ -77,7 +81,11 @@ class ParallelSentencesDataset(Dataset):
     def add_dataset(self, parallel_sentences: List[List[str]], weight: int = 100, max_sentences: int = None, max_sentence_length: int = 128):
         sentences_map = {}
         for sentences in parallel_sentences:
-            if max_sentence_length is not None and max_sentence_length > 0 and max([len(sent) for sent in sentences]) > max_sentence_length:
+            if (
+                max_sentence_length is not None
+                and max_sentence_length > 0
+                and max(len(sent) for sent in sentences) > max_sentence_length
+            ):
                 continue
 
             source_sentence = sentences[0]
@@ -90,10 +98,10 @@ class ParallelSentencesDataset(Dataset):
             if max_sentences is not None and max_sentences > 0 and len(sentences_map) >= max_sentences:
                 break
 
-        if len(sentences_map) == 0:
+        if not sentences_map:
             return
 
-        self.num_sentences += sum([len(sentences_map[sent]) for sent in sentences_map])
+        self.num_sentences += sum(len(sentences_map[sent]) for sent in sentences_map)
 
         dataset_id = len(self.datasets)
         self.datasets.append(list(sentences_map.items()))
@@ -133,12 +141,11 @@ class ParallelSentencesDataset(Dataset):
             return self.teacher_model.encode(sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=True)
 
         #Use caching
-        new_sentences = []
-        for sent in sentences:
-            if sent not in self.embedding_cache:
-                new_sentences.append(sent)
+        new_sentences = [
+            sent for sent in sentences if sent not in self.embedding_cache
+        ]
 
-        if len(new_sentences) > 0:
+        if new_sentences:
             new_embeddings = self.teacher_model.encode(new_sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=True)
             for sent, embedding in zip(new_sentences, new_embeddings):
                 self.embedding_cache[sent] = embedding

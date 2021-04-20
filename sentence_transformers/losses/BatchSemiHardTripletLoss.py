@@ -88,9 +88,15 @@ class BatchSemiHardTripletLoss(nn.Module):
         mask_positives = mask_positives.to(labels.device)
         num_positives = torch.sum(mask_positives)
 
-        triplet_loss = torch.sum(torch.max(loss_mat * mask_positives, torch.tensor([0.0], device=labels.device))) / num_positives
-
-        return triplet_loss
+        return (
+            torch.sum(
+                torch.max(
+                    loss_mat * mask_positives,
+                    torch.tensor([0.0], device=labels.device),
+                )
+            )
+            / num_positives
+        )
 
     @staticmethod
     def _masked_minimum(data, mask, dim=1):

@@ -49,11 +49,9 @@ class WordEmbeddings(nn.Module):
             input_ids.append(tokens + padding)
             attention_masks.append([1]*len(tokens) + padding)
 
-        output = {'input_ids': torch.tensor(input_ids, dtype=torch.long),
+        return {'input_ids': torch.tensor(input_ids, dtype=torch.long),
                 'attention_mask': torch.tensor(attention_masks, dtype=torch.long),
                 'sentence_lengths': torch.tensor(sentence_lengths, dtype=torch.long)}
-
-        return output
 
 
 
@@ -79,8 +77,11 @@ class WordEmbeddings(nn.Module):
         tokenizer = tokenizer_class.load(input_path)
         weights = torch.load(os.path.join(input_path, 'pytorch_model.bin'), map_location=torch.device('cpu'))
         embedding_weights = weights['emb_layer.weight']
-        model = WordEmbeddings(tokenizer=tokenizer, embedding_weights=embedding_weights, update_embeddings=config['update_embeddings'])
-        return model
+        return WordEmbeddings(
+            tokenizer=tokenizer,
+            embedding_weights=embedding_weights,
+            update_embeddings=config['update_embeddings'],
+        )
 
     @staticmethod
     def from_text_file(embeddings_file_path: str, update_embeddings: bool = False, item_separator: str = " ", tokenizer=WhitespaceTokenizer(), max_vocab_size: int = None):
@@ -96,16 +97,16 @@ class WordEmbeddings(nn.Module):
             http_get(url, embeddings_file_path)
 
         embeddings_dimension = None
-        vocab = []
         embeddings = []
 
         with gzip.open(embeddings_file_path, "rt", encoding="utf8") if embeddings_file_path.endswith('.gz') else open(embeddings_file_path, encoding="utf8") as fIn:
             iterator = tqdm(fIn, desc="Load Word Embeddings", unit="Embeddings")
+            vocab = []
             for line in iterator:
                 split = line.rstrip().split(item_separator)
                 word = split[0]
 
-                if embeddings_dimension == None:
+                if embeddings_dimension is None:
                     embeddings_dimension = len(split) - 1
                     vocab.append("PADDING_TOKEN")
                     embeddings.append(np.zeros(embeddings_dimension))

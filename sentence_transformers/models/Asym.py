@@ -112,11 +112,9 @@ class Asym(nn.Sequential):
             module = module_class.load(os.path.join(input_path, model_id))
             modules[model_id] = module
 
-        model_structure = {}
-        for key_name, models_list in config['structure'].items():
-            model_structure[key_name] = []
-            for model_id in models_list:
-                model_structure[key_name].append(modules[model_id])
+        model_structure = {
+            key_name: [modules[model_id] for model_id in models_list]
+            for key_name, models_list in config['structure'].items()
+        }
 
-        model = Asym(model_structure, **config['parameters'])
-        return model
+        return Asym(model_structure, **config['parameters'])

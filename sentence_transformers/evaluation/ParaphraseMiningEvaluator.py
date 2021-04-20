@@ -78,11 +78,11 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        if epoch != -1:
-            out_txt = f" after epoch {epoch}:" if steps == -1 else f" in epoch {epoch} after {steps} steps:"
-        else:
+        if epoch == -1:
             out_txt = ":"
 
+        else:
+            out_txt = f" after epoch {epoch}:" if steps == -1 else f" in epoch {epoch} after {steps} steps:"
         logger.info("Paraphrase Mining Evaluation on " + self.name + " dataset" + out_txt)
 
         #Compute embedding for the sentences
@@ -117,7 +117,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                     best_recall = recall
                     threshold = (pairs_list[idx][0] + pairs_list[min(idx + 1, len(pairs_list)-1)][0]) / 2
 
-        average_precision = average_precision / self.total_num_duplicates
+        average_precision /= self.total_num_duplicates
 
         logger.info("Average Precision: {:.2f}".format(average_precision * 100))
         logger.info("Optimal threshold: {:.4f}".format(threshold))
@@ -127,16 +127,16 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
-            if not os.path.isfile(csv_path):
-                with open(csv_path, mode="w", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
-            else:
+            if os.path.isfile(csv_path):
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
 
+            else:
+                with open(csv_path, mode="w", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(self.csv_headers)
+                    writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
         return average_precision
 
 
@@ -145,12 +145,10 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         nodes_visited = set()
         for a in list(graph.keys()):
             if a not in nodes_visited:
-                connected_subgraph_nodes = set()
-                connected_subgraph_nodes.add(a)
-
+                connected_subgraph_nodes = {a}
                 # Add all nodes in the connected graph
                 neighbor_nodes_queue = list(graph[a])
-                while len(neighbor_nodes_queue) > 0:
+                while neighbor_nodes_queue:
                     node = neighbor_nodes_queue.pop(0)
                     if node not in connected_subgraph_nodes:
                         connected_subgraph_nodes.add(node)

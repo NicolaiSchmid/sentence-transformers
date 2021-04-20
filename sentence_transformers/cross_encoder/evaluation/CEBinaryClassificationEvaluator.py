@@ -19,7 +19,7 @@ class CEBinaryClassificationEvaluator:
     def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', write_csv: bool = True):
         assert len(sentence_pairs) == len(labels)
         for label in labels:
-            assert (label == 0 or label == 1)
+            assert label in [0, 1]
 
         self.sentence_pairs = sentence_pairs
         self.labels = np.asarray(labels)

@@ -83,6 +83,4 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
         #tl = hardest_positive_dist - hardest_negative_dist + margin
         #tl[tl < 0] = 0
         tl = torch.log1p(torch.exp(hardest_positive_dist - hardest_negative_dist))
-        triplet_loss = tl.mean()
-
-        return triplet_loss
+        return tl.mean()

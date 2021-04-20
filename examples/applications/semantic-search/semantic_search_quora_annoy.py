@@ -25,6 +25,7 @@ As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
+
 from sentence_transformers import SentenceTransformer, util
 import os
 import csv
@@ -51,7 +52,14 @@ embedding_cache_path = 'quora-embeddings-{}-size-{}.pkl'.format(model_name.repla
 
 
 #Check if embedding cache path exists
-if not os.path.exists(embedding_cache_path):
+if os.path.exists(embedding_cache_path):
+    print("Load pre-computed embeddings from disc")
+    with open(embedding_cache_path, "rb") as fIn:
+        cache_data = pickle.load(fIn)
+        corpus_sentences = cache_data['sentences']
+        corpus_embeddings = cache_data['embeddings']
+
+else:
     # Check if the dataset exists. If not, download and extract
     # Download dataset if needed
     if not os.path.exists(dataset_path):
@@ -78,14 +86,13 @@ if not os.path.exists(embedding_cache_path):
     print("Store file on disc")
     with open(embedding_cache_path, "wb") as fOut:
         pickle.dump({'sentences': corpus_sentences, 'embeddings': corpus_embeddings}, fOut)
-else:
-    print("Load pre-computed embeddings from disc")
-    with open(embedding_cache_path, "rb") as fIn:
-        cache_data = pickle.load(fIn)
-        corpus_sentences = cache_data['sentences']
-        corpus_embeddings = cache_data['embeddings']
+if os.path.exists(annoy_index_path):
+    #Load Annoy Index from disc
+    annoy_index = AnnoyIndex(embedding_size, 'angular')
+    annoy_index.load(annoy_index_path)
 
-if not os.path.exists(annoy_index_path):
+
+else:
     # Create Annoy Index
     print("Create Annoy index with {} trees. This can take some time.".format(n_trees))
     annoy_index = AnnoyIndex(embedding_size, 'angular')
@@ -95,12 +102,6 @@ if not os.path.exists(annoy_index_path):
 
     annoy_index.build(n_trees)
     annoy_index.save(annoy_index_path)
-else:
-    #Load Annoy Index from disc
-    annoy_index = AnnoyIndex(embedding_size, 'angular')
-    annoy_index.load(annoy_index_path)
-
-
 corpus_embeddings = torch.from_numpy(corpus_embeddings)
 
 ######### Search in the index ###########
@@ -114,9 +115,10 @@ while True:
     question_embedding = model.encode(inp_question)
 
     corpus_ids, scores = annoy_index.get_nns_by_vector(question_embedding, top_k_hits, include_distances=True)
-    hits = []
-    for id, score in zip(corpus_ids, scores):
-        hits.append({'corpus_id': id, 'score': 1-((score**2) / 2)})
+    hits = [
+        {'corpus_id': id, 'score': 1 - ((score ** 2) / 2)}
+        for id, score in zip(corpus_ids, scores)
+    ]
 
     end_time = time.time()
 
@@ -128,7 +130,7 @@ while True:
     # Approximate Nearest Neighbor (ANN) is not exact, it might miss entries with high cosine similarity
     # Here, we compute the recall of ANN compared to the exact results
     correct_hits = util.semantic_search(question_embedding, corpus_embeddings, top_k=top_k_hits)[0]
-    correct_hits_ids = set([hit['corpus_id'] for hit in correct_hits])
+    correct_hits_ids = {hit['corpus_id'] for hit in correct_hits}
 
     #Compute recall
     ann_corpus_ids = set(corpus_ids)

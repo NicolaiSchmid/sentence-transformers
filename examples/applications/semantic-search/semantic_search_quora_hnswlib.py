@@ -20,6 +20,7 @@ As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
+
 from sentence_transformers import SentenceTransformer, util
 import os
 import csv
@@ -125,9 +126,9 @@ while True:
     # Approximate Nearest Neighbor (ANN) is not exact, it might miss entries with high cosine similarity
     # Here, we compute the recall of ANN compared to the exact results
     correct_hits = util.semantic_search(question_embedding, corpus_embeddings, top_k=top_k_hits)[0]
-    correct_hits_ids = set([hit['corpus_id'] for hit in correct_hits])
+    correct_hits_ids = {hit['corpus_id'] for hit in correct_hits}
 
-    ann_corpus_ids = set([hit['corpus_id'] for hit in hits])
+    ann_corpus_ids = {hit['corpus_id'] for hit in hits}
     if len(ann_corpus_ids) != len(correct_hits_ids):
         print("Approximate Nearest Neighbor returned a different number of results than expected")
 

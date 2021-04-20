@@ -216,9 +216,9 @@ def semantic_search(query_embeddings: Tensor,
             cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
 
             for query_itr in range(len(cos_scores)):
+                query_id = query_start_idx + query_itr
                 for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
                     corpus_id = corpus_start_idx + sub_corpus_id
-                    query_id = query_start_idx + query_itr
                     queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
 
     #Sort and strip to top_k results

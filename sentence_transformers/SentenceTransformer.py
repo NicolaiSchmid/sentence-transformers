@@ -83,9 +83,6 @@ class SentenceTransformer(nn.Sequential):
                         os.rename(model_path_tmp, model_path)
                     except requests.exceptions.HTTPError as e:
                         shutil.rmtree(model_path_tmp)
-                        if e.response.status_code == 429:
-                            raise Exception("Too many requests were detected from this IP for the model {}. Please contact info@nils-reimers.de for more information.".format(model_name_or_path))
-
                         if e.response.status_code == 404:
                             logger.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
                             logger.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
@@ -95,6 +92,9 @@ class SentenceTransformer(nn.Sequential):
                             transformer_model = Transformer(model_name_or_path)
                             pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
                             modules = [transformer_model, pooling_model]
+                        elif e.response.status_code == 429:
+                            raise Exception("Too many requests were detected from this IP for the model {}. Please contact info@nils-reimers.de for more information.".format(model_name_or_path))
+
                         else:
                             raise e
                     except Exception as e:
@@ -162,7 +162,7 @@ class SentenceTransformer(nn.Sequential):
         """
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (logger.getEffectiveLevel()==logging.INFO or logger.getEffectiveLevel()==logging.DEBUG)
+            show_progress_bar = logger.getEffectiveLevel() in [logging.INFO, logging.DEBUG]
 
         if convert_to_tensor:
             convert_to_numpy = False
@@ -303,14 +303,13 @@ class SentenceTransformer(nn.Sequential):
                 last_chunk_id += 1
                 chunk = []
 
-        if len(chunk) > 0:
+        if chunk:
             input_queue.put([last_chunk_id, batch_size, chunk])
             last_chunk_id += 1
 
         output_queue = pool['output']
         results_list = sorted([output_queue.get() for _ in range(last_chunk_id)], key=lambda x: x[0])
-        embeddings = np.concatenate([result[1] for result in results_list])
-        return embeddings
+        return np.concatenate([result[1] for result in results_list])
 
     @staticmethod
     def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue):
@@ -497,7 +496,7 @@ class SentenceTransformer(nn.Sequential):
         self.best_score = -9999999
 
         if steps_per_epoch is None or steps_per_epoch == 0:
-            steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
+            steps_per_epoch = min(len(dataloader) for dataloader in dataloaders)
 
         num_train_steps = int(steps_per_epoch * epochs)
 
@@ -509,9 +508,24 @@ class SentenceTransformer(nn.Sequential):
 
             no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
             optimizer_grouped_parameters = [
-                {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
-                {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+                {
+                    'params': [
+                        p
+                        for n, p in param_optimizer
+                        if all(nd not in n for nd in no_decay)
+                    ],
+                    'weight_decay': weight_decay,
+                },
+                {
+                    'params': [
+                        p
+                        for n, p in param_optimizer
+                        if any(nd in n for nd in no_decay)
+                    ],
+                    'weight_decay': 0.0,
+                },
             ]
+
 
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
             scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
@@ -527,13 +541,11 @@ class SentenceTransformer(nn.Sequential):
 
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
-            training_steps = 0
-
             for loss_model in loss_models:
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for training_steps, _ in enumerate(trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar), start=1):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -574,7 +586,6 @@ class SentenceTransformer(nn.Sequential):
                     if not skip_scheduler:
                         scheduler.step()
 
-                training_steps += 1
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
@@ -644,8 +655,7 @@ class SentenceTransformer(nn.Sequential):
             # For nn.DataParallel compatibility in PyTorch 1.5
 
             def find_tensor_attributes(module: nn.Module) -> List[Tuple[str, Tensor]]:
-                tuples = [(k, v) for k, v in module.__dict__.items() if torch.is_tensor(v)]
-                return tuples
+                return [(k, v) for k, v in module.__dict__.items() if torch.is_tensor(v)]
 
             gen = self._named_members(get_members_fn=find_tensor_attributes)
             first_tuple = next(gen)

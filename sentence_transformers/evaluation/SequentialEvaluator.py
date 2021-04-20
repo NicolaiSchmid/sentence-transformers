@@ -13,8 +13,9 @@ class SequentialEvaluator(SentenceEvaluator):
         self.main_score_function = main_score_function
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        scores = []
-        for evaluator in self.evaluators:
-            scores.append(evaluator(model, output_path, epoch, steps))
+        scores = [
+            evaluator(model, output_path, epoch, steps)
+            for evaluator in self.evaluators
+        ]
 
         return self.main_score_function(scores)

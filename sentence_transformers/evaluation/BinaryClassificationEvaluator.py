@@ -39,13 +39,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.labels)
         for label in labels:
-            assert (label == 0 or label == 1)
+            assert label in [0, 1]
 
         self.write_csv = write_csv
         self.name = name
         self.batch_size = batch_size
         if show_progress_bar is None:
-            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
+            show_progress_bar = logger.getEffectiveLevel() in [logging.INFO, logging.DEBUG]
         self.show_progress_bar = show_progress_bar
 
         self.csv_file = "binary_classification_evaluation" + ("_"+name if name else '') + "_results.csv"
@@ -163,14 +163,11 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         best_f1 = best_precision = best_recall = 0
         threshold = 0
-        nextract = 0
         ncorrect = 0
         total_num_duplicates = sum(labels)
 
-        for i in range(len(rows)-1):
+        for nextract, i in enumerate(range(len(rows)-1), start=1):
             score, label = rows[i]
-            nextract += 1
-
             if label == 1:
                 ncorrect += 1
 

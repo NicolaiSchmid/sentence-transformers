@@ -18,6 +18,7 @@ that it aligned for 100 languages. I.e., you can type in a question in various l
 return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
 
+
 from sentence_transformers import SentenceTransformer, util
 import os
 from elasticsearch import Elasticsearch, helpers
@@ -81,16 +82,21 @@ if not es.indices.exists(index="quora"):
                 end_idx = start_idx+chunk_size
 
                 embeddings = model.encode(questions[start_idx:end_idx], show_progress_bar=False)
-                bulk_data = []
-                for qid, question, embedding in zip(qids[start_idx:end_idx], questions[start_idx:end_idx], embeddings):
-                    bulk_data.append({
-                            "_index": 'quora',
-                            "_id": qid,
-                            "_source": {
-                                "question": question,
-                                "question_vector": embedding
-                            }
-                        })
+                bulk_data = [
+                    {
+                        "_index": 'quora',
+                        "_id": qid,
+                        "_source": {
+                            "question": question,
+                            "question_vector": embedding,
+                        },
+                    }
+                    for qid, question, embedding in zip(
+                        qids[start_idx:end_idx],
+                        questions[start_idx:end_idx],
+                        embeddings,
+                    )
+                ]
 
                 helpers.bulk(es, bulk_data)
                 pbar.update(chunk_size)

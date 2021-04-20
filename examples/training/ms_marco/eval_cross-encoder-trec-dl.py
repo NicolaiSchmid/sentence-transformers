@@ -12,6 +12,7 @@ Run:
 python eval_cross-encoder-trec-dl.py cross-encoder-model-name
 
 """
+
 import gzip
 from collections import defaultdict
 import logging
@@ -54,12 +55,7 @@ with open(qrels_filepath) as fIn:
             relevant_docs[qid][pid] = score
 
 # Only use queries that have at least one relevant passage
-relevant_qid = []
-for qid in queries:
-    if len(relevant_docs[qid]) > 0:
-        relevant_qid.append(qid)
-
-
+relevant_qid = [qid for qid in queries if len(relevant_docs[qid]) > 0]
 # Read the top 1000 passages that are supposed to be re-ranked
 passage_filepath = os.path.join(data_folder, 'msmarco-passagetest2019-top1000.tsv.gz')
 
@@ -98,16 +94,9 @@ for qid in tqdm.tqdm(relevant_qid):
     else:
         cross_scores = model.predict(cross_inp).tolist()
 
-    cross_scores_sparse = {}
-    for idx, pid in enumerate(pids):
-        cross_scores_sparse[pid] = cross_scores[idx]
-
+    cross_scores_sparse = {pid: cross_scores[idx] for idx, pid in enumerate(pids)}
     sparse_scores = cross_scores_sparse
-    run[qid] = {}
-    for pid in sparse_scores:
-        run[qid][pid] = float(sparse_scores[pid])
-
-
+    run[qid] = {pid: float(sparse_scores[pid]) for pid in sparse_scores}
 evaluator = pytrec_eval.RelevanceEvaluator(relevant_docs, {'ndcg_cut.10'})
 scores = evaluator.evaluate(run)
 

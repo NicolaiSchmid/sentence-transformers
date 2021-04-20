@@ -38,7 +38,11 @@ class CrossEncoder():
         self.config = AutoConfig.from_pretrained(model_name)
         classifier_trained = True
         if self.config.architectures is not None:
-            classifier_trained = any([arch.endswith('ForSequenceClassification') for arch in self.config.architectures])
+            classifier_trained = any(
+                arch.endswith('ForSequenceClassification')
+                for arch in self.config.architectures
+            )
+
 
         if num_labels is None and not classifier_trained:
             num_labels = 1
@@ -173,9 +177,24 @@ class CrossEncoder():
 
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+            {
+                'params': [
+                    p
+                    for n, p in param_optimizer
+                    if all(nd not in n for nd in no_decay)
+                ],
+                'weight_decay': weight_decay,
+            },
+            {
+                'params': [
+                    p
+                    for n, p in param_optimizer
+                    if any(nd in n for nd in no_decay)
+                ],
+                'weight_decay': 0.0,
+            },
         ]
+
 
         optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
 
@@ -188,11 +207,10 @@ class CrossEncoder():
 
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch"):
-            training_steps = 0
             self.model.zero_grad()
             self.model.train()
 
-            for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05):
+            for training_steps, (features, labels) in enumerate(tqdm(train_dataloader, desc="Iteration", smoothing=0.05), start=1):
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
@@ -224,8 +242,6 @@ class CrossEncoder():
 
                 if not skip_scheduler:
                     scheduler.step()
-
-                training_steps += 1
 
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
@@ -268,7 +284,7 @@ class CrossEncoder():
         inp_dataloader = DataLoader(sentences, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
 
         if show_progress_bar is None:
-            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
+            show_progress_bar = logger.getEffectiveLevel() in [logging.INFO, logging.DEBUG]
 
         iterator = inp_dataloader
         if show_progress_bar:

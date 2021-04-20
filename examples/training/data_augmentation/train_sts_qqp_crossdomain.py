@@ -16,6 +16,7 @@ python train_sts_qqp_crossdomain.py
 OR
 python train_sts_qqp_crossdomain.py pretrained_transformer_model_name
 """
+
 from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util
 from sentence_transformers.cross_encoder import CrossEncoder
@@ -172,7 +173,11 @@ logging.info("Step 3: Train bi-encoder: {} over labeled QQP (target dataset)".fo
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Loading BERT labeled QQP dataset")
-qqp_train_data = list(InputExample(texts=[data[0], data[1]], label=score) for (data, score) in zip(silver_data, binary_silver_scores))
+qqp_train_data = [
+    InputExample(texts=[data[0], data[1]], label=score)
+    for (data, score) in zip(silver_data, binary_silver_scores)
+]
+
 
 
 train_dataloader = DataLoader(qqp_train_data, shuffle=True, batch_size=batch_size)

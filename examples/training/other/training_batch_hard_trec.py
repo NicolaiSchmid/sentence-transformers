@@ -57,8 +57,7 @@ def trec_dataset(
 
         examples = []
         label_map = {}
-        guid=1
-        for line in open(full_path, "rb"):
+        for guid, line in enumerate(open(full_path, "rb"), start=2):
             # there is one non-ASCII byte: sisterBADBYTEcity; replaced with space
             label, _, text = line.replace(b"\xf0", b" ").strip().decode().partition(" ")
 
@@ -66,7 +65,6 @@ def trec_dataset(
                 label_map[label] = len(label_map)
 
             label_id = label_map[label]
-            guid += 1
             examples.append(InputExample(guid=guid, texts=[text], label=label_id))
         ret.append(examples)
 
