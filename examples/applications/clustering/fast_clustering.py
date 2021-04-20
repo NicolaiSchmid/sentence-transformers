@@ -70,12 +70,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
     extracted_ids = set()
 
     for community in extracted_communities:
-        add_cluster = True
-        for idx in community:
-            if idx in extracted_ids:
-                add_cluster = False
-                break
-
+        add_cluster = all(idx not in extracted_ids for idx in community)
         if add_cluster:
             unique_communities.append(community)
             for idx in community:

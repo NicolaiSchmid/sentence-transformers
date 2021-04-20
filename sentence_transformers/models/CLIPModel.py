@@ -36,10 +36,10 @@ class CLIPModel(nn.Module):
                 text_features.append(tokenize(self.tokenizer, data))
                 image_text_info.append(1)
 
-        if len(image_features) > 0:
+        if image_features:
             image_features = torch.cat(image_features)
 
-        if len(text_features) > 0:
+        if text_features:
             text_features = torch.cat(text_features)
 
         return {'image_features': image_features, 'text_features': text_features, 'image_text_info': image_text_info}
@@ -671,12 +671,30 @@ def build_model(state_dict: dict):
 
     if vit:
         vision_width = state_dict["visual.conv1.weight"].shape[0]
-        vision_layers = len([k for k in state_dict.keys() if k.startswith("visual.") and k.endswith(".attn.in_proj_weight")])
+        vision_layers = len(
+            [
+                k
+                for k in state_dict
+                if k.startswith("visual.")
+                and k.endswith(".attn.in_proj_weight")
+            ]
+        )
+
         vision_patch_size = state_dict["visual.conv1.weight"].shape[-1]
         grid_size = round((state_dict["visual.positional_embedding"].shape[0] - 1) ** 0.5)
         image_resolution = vision_patch_size * grid_size
     else:
-        counts: list = [len(set(k.split(".")[2] for k in state_dict if k.startswith(f"visual.layer{b}"))) for b in [1, 2, 3, 4]]
+        counts: list = [
+            len(
+                {
+                    k.split(".")[2]
+                    for k in state_dict
+                    if k.startswith(f"visual.layer{b}")
+                }
+            )
+            for b in [1, 2, 3, 4]
+        ]
+
         vision_layers = tuple(counts)
         vision_width = state_dict["visual.layer1.0.conv1.weight"].shape[0]
         output_width = round((state_dict["visual.attnpool.positional_embedding"].shape[0] - 1) ** 0.5)
@@ -689,7 +707,14 @@ def build_model(state_dict: dict):
     vocab_size = state_dict["token_embedding.weight"].shape[0]
     transformer_width = state_dict["ln_final.weight"].shape[0]
     transformer_heads = transformer_width // 64
-    transformer_layers = len(set(k.split(".")[2] for k in state_dict if k.startswith(f"transformer.resblocks")))
+    transformer_layers = len(
+        {
+            k.split(".")[2]
+            for k in state_dict
+            if k.startswith(f"transformer.resblocks")
+        }
+    )
+
 
     model = CLIP(
         embed_dim,
@@ -771,7 +796,7 @@ class SimpleTokenizer(object):
         merges = merges[1:49152-256-2+1]
         merges = [tuple(merge.split()) for merge in merges]
         vocab = list(bytes_to_unicode().values())
-        vocab = vocab + [v+'</w>' for v in vocab]
+        vocab += [v+'</w>' for v in vocab]
         for merge in merges:
             vocab.append(''.join(merge))
         vocab.extend(['<|startoftext|>', '<|endoftext|>'])
@@ -837,6 +862,6 @@ class SimpleTokenizer(object):
         return bpe_tokens
 
     def decode(self, tokens):
-        text = ''.join([self.decoder[token] for token in tokens])
+        text = ''.join(self.decoder[token] for token in tokens)
         text = bytearray([self.byte_decoder[c] for c in text]).decode('utf-8', errors="replace").replace('</w>', ' ')
         return text

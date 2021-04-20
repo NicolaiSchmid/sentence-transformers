@@ -51,15 +51,12 @@ class PhraseTokenizer(WordTokenizer):
 
         #phrase detection
         for ngram_len in sorted(self.ngram_lengths, reverse=True):
-            idx = 0
-            while idx <= len(tokens) - ngram_len:
+            for idx in range(len(tokens) - ngram_len + 1):
                 ngram = self.ngram_separator.join(tokens[idx:idx + ngram_len])
                 if ngram in self.ngram_lookup:
                     tokens[idx:idx + ngram_len] = [ngram]
                 elif ngram.lower() in self.ngram_lookup:
                     tokens[idx:idx + ngram_len] = [ngram.lower()]
-                idx += 1
-
         #Map tokens to idx, filter stop words
         tokens_filtered = []
         for token in tokens:

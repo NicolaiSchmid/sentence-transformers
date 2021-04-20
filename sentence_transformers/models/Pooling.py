@@ -64,10 +64,10 @@ class Pooling(nn.Module):
 
             sum_mask = torch.clamp(sum_mask, min=1e-9)
 
-            if self.pooling_mode_mean_tokens:
-                output_vectors.append(sum_embeddings / sum_mask)
-            if self.pooling_mode_mean_sqrt_len_tokens:
-                output_vectors.append(sum_embeddings / torch.sqrt(sum_mask))
+        if self.pooling_mode_mean_tokens:
+            output_vectors.append(sum_embeddings / sum_mask)
+        if self.pooling_mode_mean_sqrt_len_tokens:
+            output_vectors.append(sum_embeddings / torch.sqrt(sum_mask))
 
         output_vector = torch.cat(output_vectors, 1)
         features.update({'sentence_embedding': output_vector})

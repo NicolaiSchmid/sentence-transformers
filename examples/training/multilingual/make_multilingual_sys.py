@@ -32,6 +32,7 @@ python make_multilingual_sys.py parallel-sentences/*-train.tsv.gz --dev parallel
 
 """
 
+
 from sentence_transformers import SentenceTransformer, LoggingHandler, models, evaluation, losses
 from torch.utils.data import DataLoader
 from sentence_transformers.datasets import ParallelSentencesDataset
@@ -88,7 +89,7 @@ for arg in sys.argv[1:]:
         else:
             train_files.append(arg)
 
-if len(train_files) == 0:
+if not train_files:
     print("Please pass at least some train files")
     print("python make_multilingual_sys.py file1.tsv.gz file2.tsv.gz --dev dev1.tsv.gz dev2.tsv.gz")
     exit()

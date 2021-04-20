@@ -49,7 +49,7 @@ class CERerankingEvaluator:
             docs = positive + negative
             is_relevant = [True]*len(positive) + [False]*len(negative)
 
-            if len(positive) == 0 or len(negative) == 0:
+            if not positive or not negative:
                 continue
 
             num_queries += 1

@@ -30,13 +30,11 @@ def degree_centrality_scores(
             threshold,
         )
 
-    scores = stationary_distribution(
+    return stationary_distribution(
         markov_matrix,
         increase_power=increase_power,
         normalized=False,
     )
-
-    return scores
 
 
 def _power_method(transition_matrix, increase_power=True):

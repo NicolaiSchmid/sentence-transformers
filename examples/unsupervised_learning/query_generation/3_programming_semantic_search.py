@@ -11,6 +11,7 @@ In:
 3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
 """
 
+
 from sentence_transformers import SentenceTransformer, util
 import gzip
 import json
@@ -36,7 +37,7 @@ with gzip.open(corpus_filepath, 'rt') as fIn:
 paragraph_emb = model.encode([d[1] for d in docs], convert_to_tensor=True)
 
 print("Available Wikipedia Articles:")
-print(", ".join(sorted(list(set([d[0] for d in docs])))))
+print(", ".join(sorted(list({d[0] for d in docs}))))
 
 # Example for semantic search
 while True:

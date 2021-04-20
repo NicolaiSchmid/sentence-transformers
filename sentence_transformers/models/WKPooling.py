@@ -86,8 +86,7 @@ class WKPooling(nn.Module):
         alpha = alpha_novelty + alpha_alignment
         alpha = alpha / torch.sum(alpha)  # Normalize
 
-        out_embedding = torch.mv(token_feature.t(), alpha)
-        return out_embedding
+        return torch.mv(token_feature.t(), alpha)
 
     def norm_vector(self, vec, p=2, dim=0):
         """
@@ -109,9 +108,7 @@ class WKPooling(nn.Module):
             var_token[token_index] = torch.var(sim_map.diagonal(-1))
 
         var_token = var_token / torch.sum(var_token)
-        sentence_embedding = torch.mv(one_sentence_embedding.t(), var_token)
-
-        return sentence_embedding
+        return torch.mv(one_sentence_embedding.t(), var_token)
 
     def cosine_similarity_torch(self, x1, x2=None, eps=1e-8):
         x2 = x1 if x2 is None else x2

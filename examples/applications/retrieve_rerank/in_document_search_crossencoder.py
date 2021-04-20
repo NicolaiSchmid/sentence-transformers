@@ -15,6 +15,7 @@ becomes at some point in-efficient if the document gets too large.
 Usage: python in_document_search_crossencoder.py
 """
 
+
 from sentence_transformers import CrossEncoder
 from nltk import sent_tokenize
 import time
@@ -38,11 +39,11 @@ There have been attempts to connect Eurṓpē to a Semitic term for "west", this
 Most major world languages use words derived from Eurṓpē or Europa to refer to the continent. Chinese, for example, uses the word Ōuzhōu (歐洲/欧洲), which is an abbreviation of the transliterated name Ōuluóbā zhōu (歐羅巴洲) (zhōu means "continent"); a similar Chinese-derived term Ōshū (欧州) is also sometimes used in Japanese such as in the Japanese name of the European Union, Ōshū Rengō (欧州連合), despite the katakana Yōroppa (ヨーロッパ) being more commonly used. In some Turkic languages, the originally Persian name Frangistan ("land of the Franks") is used casually in referring to much of Europe, besides official names such as Avrupa or Evropa."""
 
 ## We split this article into paragraphs and then every paragraph into sentences
-paragraphs = []
-for paragraph in document.replace("\r\n", "\n").split("\n\n"):
-    if len(paragraph.strip()) > 0:
-        paragraphs.append(sent_tokenize(paragraph.strip()))
-
+paragraphs = [
+    sent_tokenize(paragraph.strip())
+    for paragraph in document.replace("\r\n", "\n").split("\n\n")
+    if len(paragraph.strip()) > 0
+]
 
 #We combine up to 3 sentences into a passage. You can choose smaller or larger values for window_size
 #Smaller value: Context from other sentences might get lost
@@ -56,7 +57,7 @@ for paragraph in paragraphs:
 
 
 print("Paragraphs: ", len(paragraphs))
-print("Sentences: ", sum([len(p) for p in paragraphs]))
+print("Sentences: ", sum(len(p) for p in paragraphs))
 print("Passages: ", len(passages))
 
 

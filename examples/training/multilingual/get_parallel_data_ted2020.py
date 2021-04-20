@@ -13,6 +13,7 @@ Further information can be found in our paper:
 Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
 https://arxiv.org/abs/2004.09813
 """
+
 import os
 import sentence_transformers.util
 import gzip
@@ -56,7 +57,7 @@ for source_lang in source_languages:
                                     'devCount': 0
                                     })
 
-if len(files_to_create) > 0:
+if files_to_create:
     print("Parallel sentences files {} do not exist. Create these files now".format(", ".join(map(lambda x: x['src_lang']+"-"+x['trg_lang'], files_to_create))))
     with gzip.open(ted2020_path, 'rt', encoding='utf8') as fIn:
         reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
